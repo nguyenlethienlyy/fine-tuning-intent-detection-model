@@ -76,13 +76,10 @@ def main():
 
     # Training arguments
     training_args = TrainingArguments(
-        output_dir=OUTPUT_DIR,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=16,
-        num_train_epochs=1,          # chỉ cần 1 epoch để test pipeline
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        logging_steps=10,
+    output_dir=OUTPUT_DIR,
+    per_device_train_batch_size=16,
+    per_device_eval_batch_size=16,
+    num_train_epochs=1,
     )
 
     # Trainer
