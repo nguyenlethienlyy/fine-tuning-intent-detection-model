@@ -1,0 +1,22 @@
+model:
+  name: "distilbert-base-uncased"
+  num_labels: 0
+
+data:
+  train_path: "sample_data/train.csv"
+  test_path: "sample_data/test.csv"
+  text_column: "text"
+  label_column: "label"
+
+training:
+  output_dir: "checkpoints/intent_classifier"
+  max_seq_length: 128
+  learning_rate: 2.0e-5
+  batch_size: 16
+  num_train_epochs: 3
+  weight_decay: 0.01
+  random_seed: 42
+
+evaluation:
+  metric: "accuracy"
+
