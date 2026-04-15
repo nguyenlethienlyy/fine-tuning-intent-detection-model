@@ -1,7 +1,3 @@
-model:
-  checkpoint_dir: "checkpoints/intent_classifier"
-  label_map_path: "sample_data/label_mapping.json"
-
-inference:
-  max_seq_length: 128
-
+model_path: checkpoint
+label_map_path: sample_data/label_map.json
+max_length: 64
