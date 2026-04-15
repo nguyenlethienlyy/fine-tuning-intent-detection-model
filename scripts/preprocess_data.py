@@ -3,15 +3,16 @@ scripts/preprocess_data.py
 """
 
 import os
+import json
 from collections import Counter, defaultdict
 import pandas as pd
 from datasets import load_dataset
 
 OUTPUT_DIR = "sample_data"
 STATS_FILE = "stats.txt"
-NUM_INTENTS = 10
-SAMPLE_PER_INTENT_TRAIN = 100
-SAMPLE_PER_INTENT_TEST = 20
+NUM_INTENTS = 20
+SAMPLE_PER_INTENT_TRAIN = 1000
+SAMPLE_PER_INTENT_TEST = 1000
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -20,6 +21,19 @@ def main():
     dataset = load_dataset("banking77")
     train_data = dataset["train"]
     test_data = dataset["test"]
+
+    print(dataset)
+    print(dataset["train"][0])
+
+    label_names = dataset["train"].features["label"].names
+    label_map = {
+        name: idx for idx, name in enumerate(label_names)
+    }
+
+    with open(os.path.join(OUTPUT_DIR, "label_map.json"), "w") as f:
+        json.dump(label_map, f, indent=2)
+
+    print("Saved label_map.json")
 
     #2. statistics
     def statistic(train, test):
