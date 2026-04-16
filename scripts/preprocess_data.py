@@ -10,7 +10,7 @@ from datasets import load_dataset
 
 OUTPUT_DIR = "sample_data"
 STATS_FILE = "stats.txt"
-NUM_INTENTS = 20
+NUM_INTENTS = 77
 SAMPLE_PER_INTENT_TRAIN = 1000
 SAMPLE_PER_INTENT_TEST = 1000
 
@@ -44,7 +44,7 @@ def main():
         test_counter = Counter(test_labels)
 
         stats_path = os.path.join(OUTPUT_DIR, STATS_FILE)
-        with open(stats_path, "a") as f:
+        with open(stats_path, "w") as f:
             f.write(f"Train size: {len(train)}\n")
             f.write(f"Test size: {len(test)}\n")
             f.write(f"Number of intents: {len(train_counter)}\n\n")
@@ -60,7 +60,7 @@ def main():
 
     statistic(train_data, test_data)
 
-    #3. select intents 0-9
+    #3. select intents 
     selected_labels = list(range(NUM_INTENTS))
 
     def filter_data(data, samples):
