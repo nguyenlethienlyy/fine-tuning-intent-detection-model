@@ -1,0 +1,12 @@
+data:
+  dataset_name: banking77
+
+output:
+  output_dir: sample_data
+  stats_file: stats.txt
+  label_map_file: label_map.json
+
+sampling:
+  num_intents: 77
+  sample_per_intent_train: 1000
+  sample_per_intent_test: 1000
