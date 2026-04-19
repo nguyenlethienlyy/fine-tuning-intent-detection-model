@@ -1,0 +1,29 @@
+model:
+  name: bert-base-uncased
+  num_labels: 77
+
+data:
+  train_path: sample_data/train.csv
+  test_path: sample_data/test.csv
+  max_length: 64
+
+training:
+  output_dir: checkpoint
+
+  per_device_train_batch_size: 16
+  per_device_eval_batch_size: 16
+
+  num_train_epochs: 3
+  learning_rate: 2e-5
+  weight_decay: 0.01
+
+  evaluation_strategy: epoch
+  save_strategy: epoch
+
+  logging_dir: ./logs
+  logging_steps: 50
+
+  load_best_model_at_end: true
+  metric_for_best_model: accuracy
+
+  report_to: none
