@@ -1,15 +1,27 @@
+# configs/train.yaml
+
+paths:
+  train_data: "sample_data/train.csv"
+  label_map: "sample_data/label_map.json"
+  output_dir: "models/intent_model_checkpoint"
+
 model:
-  name: unsloth/llama-3-8b-bnb-4bit
+  # Sử dụng Llama-3 8B phiên bản đã được tối ưu 4-bit của Unsloth để tiết kiệm VRAM
+  name: "unsloth/llama-3-8b-Instruct-bnb-4bit"
+  max_seq_length: 256
+  load_in_4bit: true
 
-output:
-  dir: checkpoint
-
-data:
-  train_path: sample_data/train.csv
-  test_path: sample_data/test.csv
-  label_map_path: sample_data/label_map.json
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
 training:
-  max_seq_length: 512
-  batch_size: 4
-  epochs: 1
+  batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0002
+  epochs: 3
+  optimizer: "adamw_8bit"
+  weight_decay: 0.01
+  warmup_steps: 10
