@@ -1,127 +1,99 @@
-"""
-scripts/train.py
-"""
+"""scripts/train.py"""
 
 import yaml
-import json
+import os
 import pandas as pd
 from datasets import Dataset
-
 from unsloth import FastLanguageModel
-from transformers import TrainingArguments
 from trl import SFTTrainer
-
+from transformers import TrainingArguments
 
 # ================= LOAD CONFIG =================
 with open("configs/train.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-MODEL_NAME = config["model"]["name"]
-OUTPUT_DIR = config["output"]["dir"]
+# Lấy các thiết lập từ file cấu hình
+train_data_path = config["paths"]["train_data"]
+output_dir = config["paths"]["output_dir"]
+max_seq_length = config["model"]["max_seq_length"]
 
-TRAIN_PATH = config["data"]["train_path"]
-TEST_PATH = config["data"]["test_path"]
-LABEL_MAP_PATH = config["data"]["label_map_path"]
-
-MAX_SEQ_LENGTH = config["training"]["max_seq_length"]
-BATCH_SIZE = config["training"]["batch_size"]
-EPOCHS = config["training"]["epochs"]
-
-
-# ================= LOAD DATA =================
-print("Loading data...")
-
-train_df = pd.read_csv(TRAIN_PATH)
-test_df = pd.read_csv(TEST_PATH)
-
-with open(LABEL_MAP_PATH, "r") as f:
-    label_map = json.load(f)
-
-id2label = {v: k for k, v in label_map.items()}
-
-train_dataset = Dataset.from_pandas(train_df)
-test_dataset = Dataset.from_pandas(test_df)
-
-
-# ================= FORMAT PROMPT =================
 def format_prompt(example):
-    text = example["text"]
-    label_id = example["label"]
-    label_name = id2label[label_id]
+    """
+    Hàm định dạng dữ liệu thành prompt để huấn luyện mô hình sinh văn bản.
+    """
+    prompt = f"""Below is a customer query for a bank. Identify the correct intent category label (represented as a number) for this query.
 
-    return {
-        "text": f"""### Instruction:
-Classify the banking intent
+### Query:
+{example['text']}
 
-### Input:
-{text}
+### Intent Label:
+{example['label']}"""
+    return {"text_formatted": prompt}
 
-### Response:
-{label_name}"""
-    }
+def main():
+    print("1. Loading dataset...")
+    df_train = pd.read_csv(train_data_path)
+    train_dataset = Dataset.from_pandas(df_train)
+    
+    # Map data theo format prompt
+    train_dataset = train_dataset.map(format_prompt)
 
+    print("2. Loading base model via Unsloth...")
+    model, tokenizer = FastLanguageModel.from_pretrained(
+        model_name = config["model"]["name"],
+        max_seq_length = max_seq_length,
+        dtype = None,
+        load_in_4bit = config["model"]["load_in_4bit"],
+    )
 
-train_dataset = train_dataset.map(format_prompt)
-test_dataset = test_dataset.map(format_prompt)
+    print("3. Applying LoRA configuration...")
+    model = FastLanguageModel.get_peft_model(
+        model,
+        r = config["lora"]["r"],
+        target_modules = config["lora"]["target_modules"],
+        lora_alpha = config["lora"]["lora_alpha"],
+        lora_dropout = config["lora"]["lora_dropout"], 
+        bias = "none",
+        use_gradient_checkpointing = "unsloth",
+        random_state = 3407,
+        use_rslora = False,
+    )
 
+    print("4. Setting up Trainer...")
+    trainer = SFTTrainer(
+        model = model,
+        tokenizer = tokenizer,
+        train_dataset = train_dataset,
+        dataset_text_field = "text_formatted",
+        max_seq_length = max_seq_length,
+        dataset_num_proc = 2,
+        packing = False, # Set False for classification prompts
+        args = TrainingArguments(
+            per_device_train_batch_size = config["training"]["batch_size"],
+            gradient_accumulation_steps = config["training"]["gradient_accumulation_steps"],
+            warmup_steps = config["training"]["warmup_steps"],
+            num_train_epochs = config["training"]["epochs"],
+            learning_rate = config["training"]["learning_rate"],
+            fp16 = not model.is_bfloat16_supported(),
+            bf16 = model.is_bfloat16_supported(),
+            logging_steps = 1,
+            optim = config["training"]["optimizer"],
+            weight_decay = config["training"]["weight_decay"],
+            lr_scheduler_type = "linear",
+            seed = 3407,
+            output_dir = "outputs",
+        ),
+    )
 
-# ================= LOAD MODEL =================
-print("Loading model...")
+    print("5. Starting fine-tuning...")
+    trainer_stats = trainer.train()
 
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name=MODEL_NAME,
-    max_seq_length=MAX_SEQ_LENGTH,
-    load_in_4bit=True,
-)
+    print("6. Saving the model checkpoint...")
+    os.makedirs(output_dir, exist_ok=True)
+    # Lưu mô hình LoRA và tokenizer
+    model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+    print(f"Model saved successfully to {output_dir}")
 
-FastLanguageModel.for_training(model)
-
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=16,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    lora_alpha=16,
-    lora_dropout=0,
-    bias="none",
-    use_gradient_checkpointing=True,
-)
-
-
-# ================= TRAINING CONFIG =================
-training_args = TrainingArguments(
-    output_dir=OUTPUT_DIR,
-    per_device_train_batch_size=BATCH_SIZE,
-    gradient_accumulation_steps=2,
-    num_train_epochs=EPOCHS,
-    learning_rate=2e-4,
-    fp16=True,
-    logging_steps=10,
-    save_strategy="epoch",
-    report_to="none",
-)
-
-
-# ================= TRAINER =================
-trainer = SFTTrainer(
-    model=model,
-    tokenizer=tokenizer,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
-    dataset_text_field="text",
-    max_seq_length=MAX_SEQ_LENGTH,
-    packing=False,
-    args=training_args,
-)
-
-
-# ================= TRAIN =================
-print("Training...")
-trainer.train()
-
-
-# ================= SAVE =================
-print("Saving model...")
-model.save_pretrained(OUTPUT_DIR)
-tokenizer.save_pretrained(OUTPUT_DIR)
-
-print("Done.")
+if __name__ == "__main__":
+    main()
