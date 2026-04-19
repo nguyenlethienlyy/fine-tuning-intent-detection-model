@@ -70,7 +70,7 @@ test_dataset = test_dataset.map(format_prompt)
 # ================= LOAD MODEL =================
 print("Loading model...")
 
-model, tokenizer = FastLanguageModel.from_pretrained(
+model = FastLanguageModel.from_pretrained(
     model_name=MODEL_NAME,
     max_seq_length=MAX_SEQ_LENGTH,
     load_in_4bit=True,
