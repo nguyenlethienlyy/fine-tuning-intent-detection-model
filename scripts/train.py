@@ -1,7 +1,5 @@
 """
 scripts/train.py
-----------------
-Train intent classification using Unsloth (LLM fine-tuning).
 """
 
 import yaml
@@ -70,13 +68,14 @@ test_dataset = test_dataset.map(format_prompt)
 # ================= LOAD MODEL =================
 print("Loading model...")
 
-model = FastLanguageModel.from_pretrained(
+model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=MODEL_NAME,
     max_seq_length=MAX_SEQ_LENGTH,
     load_in_4bit=True,
 )
 
-# Enable LoRA (PEFT)
+FastLanguageModel.for_training(model)
+
 model = FastLanguageModel.get_peft_model(
     model,
     r=16,
@@ -91,18 +90,13 @@ model = FastLanguageModel.get_peft_model(
 # ================= TRAINING CONFIG =================
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
-
     per_device_train_batch_size=BATCH_SIZE,
     gradient_accumulation_steps=2,
-
     num_train_epochs=EPOCHS,
-
-    learning_rate=2e-4,  # LLM cần LR cao hơn BERT
+    learning_rate=2e-4,
     fp16=True,
-
     logging_steps=10,
     save_strategy="epoch",
-
     report_to="none",
 )
 
@@ -110,13 +104,12 @@ training_args = TrainingArguments(
 # ================= TRAINER =================
 trainer = SFTTrainer(
     model=model,
-
+    tokenizer=tokenizer,
     train_dataset=train_dataset,
     eval_dataset=test_dataset,
-
     dataset_text_field="text",
     max_seq_length=MAX_SEQ_LENGTH,
-
+    packing=False,
     args=training_args,
 )
 
