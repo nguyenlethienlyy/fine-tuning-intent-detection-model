@@ -75,6 +75,7 @@ def main():
             seed = 3407,
             output_dir = "outputs",
             save_strategy = "no",
+            report_to = "none",
         ),
     )
 
