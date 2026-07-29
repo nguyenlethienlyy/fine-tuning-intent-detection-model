@@ -9,23 +9,28 @@ from unsloth import FastLanguageModel, is_bfloat16_supported
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
-# Dọn dẹp bộ nhớ đệm GPU
-torch.cuda.empty_cache()
+DEFAULT_CONFIG_PATH = "configs/train.yaml"
 
-# ================= LOAD CONFIG =================
-with open("configs/train.yaml", "r") as f:
-    config = yaml.safe_load(f)
 
-train_data_path = config["paths"]["train_data"]
-output_dir = config["paths"]["output_dir"]
-max_seq_length = config["model"]["max_seq_length"]
+def load_config(config_path=DEFAULT_CONFIG_PATH):
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
 
 def format_prompt(example):
     """Định dạng dữ liệu thành prompt."""
     prompt = f"### Instruction:\nIdentify the intent label for the query.\n\n### Input:\n{example['text']}\n\n### Response:\n{example['label']}"
     return {"text_formatted": prompt}
 
-def main():
+def main(config_path=DEFAULT_CONFIG_PATH):
+    config = load_config(config_path)
+
+    train_data_path = config["paths"]["train_data"]
+    output_dir = config["paths"]["output_dir"]
+    max_seq_length = config["model"]["max_seq_length"]
+
+    # Dọn dẹp bộ nhớ đệm GPU
+    torch.cuda.empty_cache()
+
     print("1. Loading dataset...")
     df_train = pd.read_csv(train_data_path)
     train_dataset = Dataset.from_pandas(df_train)

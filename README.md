@@ -134,6 +134,21 @@ Metrics:
 
 ---
 
+## 6.1 Unit tests
+
+Install the test-only dependencies and run the suite:
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+pytest --cov=scripts --cov-report=term-missing   # with coverage
+```
+
+The tests stub out `torch`, `transformers`, `datasets`, `trl` and `unsloth`, so
+they run on CPU without downloading models or datasets.
+
+---
+
 ## 7. Inference
 
 ### 7.1 Run inference
