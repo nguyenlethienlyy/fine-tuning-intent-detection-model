@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python scripts/train.py --config configs/train.yaml
+python -m scripts.train --config configs/train.yaml

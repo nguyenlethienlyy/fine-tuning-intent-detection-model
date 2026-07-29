@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-python scripts/inference.py --config configs/inference.yaml
+python -m scripts.inference --config configs/inference.yaml

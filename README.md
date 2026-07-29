@@ -19,11 +19,13 @@ The pipeline covers the full lifecycle:
 fine-tune-intent-detection-model/
 │
 ├── scripts/
+│   ├── common.py              # Shared config/data/model utilities
 │   ├── preprocess_data.py     # Data preparation and preprocessing
 │   ├── train.py               # Fine-tuning script
 │   ├── inference.py           # Inference implementation
 │
 ├── configs/
+│   ├── preprocess_data.yaml   # Preprocessing configuration
 │   ├── train.yaml             # Training configuration
 │   ├── inference.yaml         # Inference configuration
 │
@@ -68,7 +70,7 @@ Recommended platforms:
 Run:
 
 ```bash
-python scripts/preprocess_data.py
+python -m scripts.preprocess_data
 ```
 
 This step will:
@@ -109,7 +111,7 @@ bash train.sh
 or
 
 ```bash
-python scripts/train.py --config configs/train.yaml
+python -m scripts.train --config configs/train.yaml
 ```
 
 ### 5.3 Output
@@ -145,7 +147,7 @@ bash inference.sh
 or
 
 ```bash
-python scripts/inference.py --config configs/inference.yaml
+python -m scripts.inference --config configs/inference.yaml
 ```
 
 ### 7.2 Usage Example
