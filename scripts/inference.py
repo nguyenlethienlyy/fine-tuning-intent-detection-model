@@ -5,57 +5,45 @@ Inference using trained intent classification model.
 """
 
 import torch
-import json
-import yaml
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+from scripts.common import (
+    load_classifier,
+    load_config,
+    load_id2label,
+    parse_config_path,
+    tokenize,
+)
 
 
 class IntentClassification:
     def __init__(self, config_path):
-        # Load config
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
+        config = load_config(config_path)
 
         self.model_path = config["model_path"]
         self.label_map_path = config["label_map_path"]
         self.max_length = config.get("max_length", 64)
 
-        # Load tokenizer & model
-        print("Loading model...")
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_path)
-        self.model.eval()
-
-        # Load label map
-        print("Loading label map...")
-        with open(self.label_map_path, "r") as f:
-            label_map = json.load(f)
-
-        # id → label
-        self.id2label = {v: k for k, v in label_map.items()}
+        self.tokenizer, self.model = load_classifier(self.model_path, eval_mode=True)
+        self.id2label = load_id2label(self.label_map_path)
 
     def __call__(self, message: str):
-        # Tokenize
-        inputs = self.tokenizer(
+        inputs = tokenize(
+            self.tokenizer,
             message,
+            self.max_length,
             return_tensors="pt",
-            truncation=True,
-            padding=True,
-            max_length=self.max_length
         )
 
-        # Inference
         with torch.no_grad():
             outputs = self.model(**inputs)
 
-        logits = outputs.logits
-        pred_id = torch.argmax(logits, dim=1).item()
+        pred_id = torch.argmax(outputs.logits, dim=1).item()
 
         return self.id2label[pred_id]
 
 
 if __name__ == "__main__":
-    classifier = IntentClassification("configs/inference.yaml")
+    classifier = IntentClassification(parse_config_path("configs/inference.yaml"))
 
     example_message = "My card has not arrived yet."
     print("Input:", example_message)

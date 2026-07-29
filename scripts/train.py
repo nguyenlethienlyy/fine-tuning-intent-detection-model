@@ -1,20 +1,17 @@
 """scripts/train.py"""
 
-import yaml
-import os
-import torch
-import pandas as pd
-from datasets import Dataset
 from unsloth import FastLanguageModel, is_bfloat16_supported
+
+import torch
 from trl import SFTTrainer
 from transformers import TrainingArguments
+
+from scripts.common import load_config, load_csv_dataset, parse_config_path, save_checkpoint
 
 # Dọn dẹp bộ nhớ đệm GPU
 torch.cuda.empty_cache()
 
-# ================= LOAD CONFIG =================
-with open("configs/train.yaml", "r") as f:
-    config = yaml.safe_load(f)
+config = load_config(parse_config_path("configs/train.yaml"))
 
 train_data_path = config["paths"]["train_data"]
 output_dir = config["paths"]["output_dir"]
@@ -27,9 +24,7 @@ def format_prompt(example):
 
 def main():
     print("1. Loading dataset...")
-    df_train = pd.read_csv(train_data_path)
-    train_dataset = Dataset.from_pandas(df_train)
-    train_dataset = train_dataset.map(format_prompt)
+    train_dataset = load_csv_dataset(train_data_path).map(format_prompt)
 
     print("2. Loading base model (Unsloth 4-bit)...")
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -83,10 +78,7 @@ def main():
     trainer.train()
 
     print("6. Saving the model checkpoint...")
-    os.makedirs(output_dir, exist_ok=True)
-    model.save_pretrained(output_dir)
-    tokenizer.save_pretrained(output_dir)
-    print(f"Model saved successfully to {output_dir}")
+    save_checkpoint(output_dir, tokenizer, model=model)
 
 if __name__ == "__main__":
     main()
